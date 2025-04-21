@@ -94,6 +94,3 @@ The frontend will run on http://localhost:3000
 - `PUT /api/todos/:id` - Update a task
 - `DELETE /api/todos/:id` - Delete a task
 
-## License
-
-This project is licensed under the MIT License. 
