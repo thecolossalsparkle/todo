@@ -24,18 +24,11 @@ const TodoItem = ({ todo, onEdit }) => {
   };
 
   const handleToggleComplete = async () => {
-    if (!_id) {
-      console.error("Cannot toggle completion: Todo ID is missing");
-      alert("Cannot update this task: Missing ID");
-      return;
-    }
-    
-    console.log('Todo ID for toggle:', _id, 'Type:', typeof _id);
-    const newStatus = !completed ? 'Completed' : 'Not Started';
     try {
-      await updateTodo(_id, { 
+      console.log('Toggling todo:', todo);
+      await updateTodo(todo._id, { 
         completed: !completed,
-        status: newStatus 
+        status: !completed ? 'Completed' : 'Not Started'
       });
     } catch (error) {
       console.error("Error toggling complete:", error);
@@ -48,16 +41,10 @@ const TodoItem = ({ todo, onEdit }) => {
   };
 
   const handleDelete = async () => {
-    if (!_id) {
-      console.error("Cannot delete: Todo ID is missing");
-      alert("Cannot delete this task: Missing ID");
-      return;
-    }
-    
-    console.log('Todo ID for delete:', _id, 'Type:', typeof _id);
-    setIsDeleting(true);
     try {
-      await deleteTodo(_id);
+      console.log('Deleting todo:', todo);
+      setIsDeleting(true);
+      await deleteTodo(todo._id);
     } catch (error) {
       setIsDeleting(false);
       console.error("Error deleting todo:", error);

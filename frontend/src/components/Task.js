@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import '../styles/App.css';
 
 const Task = ({ task, onStatusChange, onEdit, onDelete }) => {
-  const { id, title, description, status, priority, dueDate } = task;
+  const { _id, title, description, status, priority, dueDate } = task;
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -53,7 +53,7 @@ const Task = ({ task, onStatusChange, onEdit, onDelete }) => {
       default:
         newStatus = 'Not Started';
     }
-    onStatusChange(id, newStatus);
+    onStatusChange(_id, newStatus);
   };
 
   return (
@@ -102,7 +102,7 @@ const Task = ({ task, onStatusChange, onEdit, onDelete }) => {
           <FaEdit />
         </motion.button>
         <motion.button 
-          onClick={() => onDelete(id)} 
+          onClick={() => onDelete(_id)} 
           className="action-button" 
           aria-label="Delete task"
           whileHover={{ scale: 1.1, color: '#f44336' }}

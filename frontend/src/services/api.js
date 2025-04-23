@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5001/api';
 
 // Create an axios instance with default config
 const apiClient = axios.create({
@@ -27,27 +27,13 @@ apiClient.interceptors.request.use(
 // Add response interceptor for error handling
 apiClient.interceptors.response.use(
   response => {
-    // Only consider response with success: true or status 2xx as successful
-    if (response.data && response.data.success === false) {
-      return Promise.reject(new Error(response.data.message || 'Operation failed'));
-    }
     return response;
   },
   error => {
-    // Handle 401 errors (unauthorized)
     if (error.response && error.response.status === 401) {
-      console.error('Authentication error:', error.response.data);
-      
-      // If 401 error occurs on a protected route, clear token
-      // This will trigger a logout process
-      if (error.config.url !== '/auth/login' && error.config.url !== '/auth/register') {
-        console.log('Unauthorized access, clearing token');
-        localStorage.removeItem('token');
-        // Optionally, you could redirect to login page here
-      }
+      // Clear token on 401 Unauthorized response
+      localStorage.removeItem('token');
     }
-    
-    console.error('API Error:', error.response?.data || error.message);
     return Promise.reject(error);
   }
 );
@@ -62,8 +48,8 @@ const ensureValidId = (id) => {
 export const todoApi = {
   // Get all todos
   getAll: async () => {
-    // Check if token exists first
-    if (!localStorage.getItem('token')) {
+    const token = localStorage.getItem('token');
+    if (!token) {
       throw new Error('Authentication required');
     }
     
@@ -73,7 +59,8 @@ export const todoApi = {
   
   // Get a single todo by ID
   getById: async (id) => {
-    if (!localStorage.getItem('token')) {
+    const token = localStorage.getItem('token');
+    if (!token) {
       throw new Error('Authentication required');
     }
     
@@ -84,7 +71,8 @@ export const todoApi = {
   
   // Create a new todo
   create: async (todoData) => {
-    if (!localStorage.getItem('token')) {
+    const token = localStorage.getItem('token');
+    if (!token) {
       throw new Error('Authentication required');
     }
     
@@ -94,29 +82,32 @@ export const todoApi = {
   
   // Update a todo
   update: async (id, todoData) => {
-    if (!localStorage.getItem('token')) {
+    const token = localStorage.getItem('token');
+    if (!token) {
       throw new Error('Authentication required');
     }
     
     const validId = ensureValidId(id);
-    console.log('Sending update to API with ID:', validId);
     const response = await apiClient.put(`/todos/${validId}`, todoData);
     return response.data;
   },
   
   // Delete a todo
   delete: async (id) => {
-    if (!localStorage.getItem('token')) {
+    const token = localStorage.getItem('token');
+    if (!token) {
       throw new Error('Authentication required');
     }
     
     const validId = ensureValidId(id);
-    console.log('Sending delete to API with ID:', validId);
     const response = await apiClient.delete(`/todos/${validId}`);
     return response.data;
   }
 };
 
-export default {
+// Create the API object
+const api = {
   todo: todoApi
-}; 
+};
+
+export default api; 

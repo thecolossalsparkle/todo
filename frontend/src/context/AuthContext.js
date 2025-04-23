@@ -4,7 +4,7 @@ import axios from 'axios';
 const AuthContext = createContext();
 
 // Define the API base URL
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = 'http://localhost:5001/api';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -18,27 +18,30 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkServerAvailability = async () => {
       try {
-        // Try to hit the root endpoint of the API server directly
-        const healthCheckURL = 'http://localhost:5000/';
-        console.log('Checking server availability at:', healthCheckURL);
-        const response = await axios.get(healthCheckURL);
-        console.log('Server health check response:', response.data);
+        console.log('Attempting to connect to:', `${API_URL}/auth`);
+        const response = await axios.get(`${API_URL}/auth`);
+        console.log('Server response:', response.data);
         
-        setServerAvailable(true);
-        setError(null); // Clear any previous error messages
+        if (response.data && response.data.success) {
+          setServerAvailable(true);
+          setError(null);
+        } else {
+          throw new Error('Invalid server response');
+        }
       } catch (error) {
         console.error('Backend server check failed:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
         setServerAvailable(false);
         setError('Cannot connect to the server. Please ensure the backend server is running.');
       }
     };
 
-    // Only check once when the component mounts
     checkServerAvailability();
-    
-    // Add a periodic check with a longer interval (every 30 seconds)
     const intervalId = setInterval(checkServerAvailability, 30000);
-    
     return () => clearInterval(intervalId);
   }, []);
 
@@ -121,79 +124,32 @@ export const AuthProvider = ({ children }) => {
 
   // Register user
   const register = async (userData) => {
-    if (!serverAvailable) {
-      return { 
-        success: false, 
-        error: 'Cannot connect to the server. Please ensure the backend server is running.' 
-      };
-    }
-
     try {
       setLoading(true);
       setError(null);
       
-      const endpoint = `${API_URL}/auth/register`;
-      console.log('Making registration request to:', endpoint);
-      console.log('With data:', { ...userData, password: userData.password ? '******' : undefined });
+      console.log('Making registration request to:', `${API_URL}/auth/register`);
+      const response = await axios.post(`${API_URL}/auth/register`, userData);
+      console.log('Registration response:', response.data);
       
-      const response = await axios.post(endpoint, userData);
-      console.log('Register response full:', response);
-      console.log('Register response data:', response.data);
-      
-      if (!response.data || !response.data.success) {
-        console.error('Server returned unsuccessful response:', response.data);
-        return { 
-          success: false, 
-          error: response.data?.message || 'Registration failed. Please try again.'
-        };
-      }
-      
-      const { token, user } = response.data;
-      
-      if (!token || !user) {
-        console.error('Missing token or user in response:', response.data);
-        return { 
-          success: false, 
-          error: 'Invalid response from server. Missing token or user data.'
-        };
-      }
-      
-      // Transform backend user object to match frontend expectations if needed
-      const transformedUser = {
-        ...user,
-        // Ensure we use the right id field - backend sends id but we might need _id
-        id: user.id || user._id
-      };
-      
-      console.log('Transformed user data:', transformedUser);
-      
-      localStorage.setItem('token', token);
-      setToken(token);
-      setUser(transformedUser);
-      return { success: true };
-    } catch (error) {
-      console.error('Registration error details:', error);
-      
-      let errorMessage = 'Registration failed. Please try again.';
-      
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        console.log('Error response data:', error.response.data);
-        console.log('Error response status:', error.response.status);
-        console.log('Error response headers:', error.response.headers);
-        errorMessage = error.response.data?.message || errorMessage;
-      } else if (error.request) {
-        // The request was made but no response was received
-        console.log('Error request details:', error.request);
-        setServerAvailable(false);
-        errorMessage = 'Cannot connect to the server. Please ensure the backend server is running.';
+      if (response.data && response.data.success) {
+        const { token, user } = response.data;
+        localStorage.setItem('token', token);
+        setToken(token);
+        setUser(user);
+        return { success: true };
       } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log('Error message:', error.message);
-        console.log('Error config:', error.config);
+        throw new Error(response.data?.message || 'Registration failed');
       }
+    } catch (error) {
+      console.error('Registration error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       
+      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {

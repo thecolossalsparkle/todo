@@ -1,4 +1,4 @@
-import { createContext, useReducer, useContext, useEffect } from 'react';
+import { createContext, useReducer, useContext, useEffect, useCallback } from 'react';
 import { todoApi } from '../services/api';
 import { useAuth } from './AuthContext';
 
@@ -58,20 +58,8 @@ export const TodoProvider = ({ children }) => {
   const [state, dispatch] = useReducer(todoReducer, initialState);
   const { isAuthenticated, loading: authLoading, token } = useAuth();
   
-  // Load todos when authenticated
-  useEffect(() => {
-    // Only fetch todos if we're authenticated and auth check is complete
-    if (isAuthenticated && !authLoading && token) {
-      console.log('User authenticated, fetching todos');
-      getTodos();
-    } else if (!isAuthenticated && !authLoading) {
-      // Clear todos if not authenticated
-      dispatch({ type: 'CLEAR_TODOS' });
-    }
-  }, [isAuthenticated, authLoading, token]);
-
-  // Get all todos
-  const getTodos = async () => {
+  // Get all todos - wrapped in useCallback
+  const getTodos = useCallback(async () => {
     // Don't try to fetch if not authenticated
     if (!isAuthenticated) {
       console.log('Not authenticated, skipping todo fetch');
@@ -101,7 +89,19 @@ export const TodoProvider = ({ children }) => {
       }
       return [];
     }
-  };
+  }, [isAuthenticated]); // Add isAuthenticated as dependency
+
+  // Load todos when authenticated
+  useEffect(() => {
+    // Only fetch todos if we're authenticated and auth check is complete
+    if (isAuthenticated && !authLoading && token) {
+      console.log('User authenticated, fetching todos');
+      getTodos();
+    } else if (!isAuthenticated && !authLoading) {
+      // Clear todos if not authenticated
+      dispatch({ type: 'CLEAR_TODOS' });
+    }
+  }, [isAuthenticated, authLoading, token, getTodos]); // Added getTodos to dependency array
 
   // Add a new todo
   const addTodo = async (todoData) => {
@@ -146,29 +146,24 @@ export const TodoProvider = ({ children }) => {
       throw new Error('Authentication required');
     }
     
+    if (!id) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: 'Todo ID is required for update'
+      });
+      throw new Error('Todo ID is required');
+    }
+
     dispatch({ type: 'SET_LOADING' });
     try {
-      if (!id) {
-        throw new Error('Todo ID is required for update');
-      }
+      console.log('Updating todo:', { id, todoData });
       const data = await todoApi.update(id, todoData);
       dispatch({ type: 'UPDATE_TODO', payload: data });
       return data;
     } catch (error) {
       console.error('Error updating todo:', error);
-      
-      if (error.response && error.response.status === 401) {
-        dispatch({ 
-          type: 'SET_ERROR', 
-          payload: 'Authentication required. Please log in again.' 
-        });
-      } else {
-        const errorMessage = error.response?.data?.message || error.message || 'Failed to update todo';
-        dispatch({ 
-          type: 'SET_ERROR', 
-          payload: errorMessage
-        });
-      }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update todo';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw error;
     }
   };
@@ -182,30 +177,25 @@ export const TodoProvider = ({ children }) => {
       });
       throw new Error('Authentication required');
     }
-    
+
+    if (!id) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: 'Todo ID is required for deletion'
+      });
+      throw new Error('Todo ID is required');
+    }
+
     dispatch({ type: 'SET_LOADING' });
     try {
-      if (!id) {
-        throw new Error('Todo ID is required for deletion');
-      }
-      const response = await todoApi.delete(id);
+      console.log('Deleting todo:', id);
+      await todoApi.delete(id);
       dispatch({ type: 'DELETE_TODO', payload: id });
       return id;
     } catch (error) {
       console.error('Error deleting todo:', error);
-      
-      if (error.response && error.response.status === 401) {
-        dispatch({ 
-          type: 'SET_ERROR', 
-          payload: 'Authentication required. Please log in again.' 
-        });
-      } else {
-        const errorMessage = error.response?.data?.message || error.message || 'Failed to delete todo';
-        dispatch({ 
-          type: 'SET_ERROR', 
-          payload: errorMessage
-        });
-      }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete todo';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw error;
     }
   };

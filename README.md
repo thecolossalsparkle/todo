@@ -94,3 +94,17 @@ The frontend will run on http://localhost:3000
 - `PUT /api/todos/:id` - Update a task
 - `DELETE /api/todos/:id` - Delete a task
 
+## Screenshots
+
+### Adding New Task
+![Adding New Task](/images/Add%20new%20task.png)
+
+### Home Page
+![Home Page](/images/Home%20Page.png)
+
+### Profile Page
+![Profile Page](/images/Profile.png)
+
+### View and Manage Tasks
+![View and Manage Tasks](/images/View%20and%20Manage%20tasks.png)
+

@@ -366,7 +366,7 @@ const TodoPage = () => {
                 ) : (
                   filteredTodos.map(task => (
                     <Task
-                      key={task.id}
+                      key={task._id}
                       task={task}
                       onStatusChange={handleStatusChange}
                       onEdit={handleEdit}
